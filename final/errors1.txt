@@ -1,0 +1,4 @@
+socket_server.c: In function ‘main’:
+socket_server.c:74:2: warning: incompatible implicit declaration of built-in function ‘bzero’
+  bzero((char *) &serv_addr, sizeof(serv_addr));
+  ^
