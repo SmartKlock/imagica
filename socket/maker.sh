@@ -3,4 +3,3 @@ cat errors1.txt | grep error
 gcc socket_client.c -o client  2> errors2.txt
 cat errors2.txt | grep error
 
-echo test
