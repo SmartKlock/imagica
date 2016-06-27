@@ -221,9 +221,13 @@ int main(int argc, char *argv[])
 				}
 				bzero(buffer,256);
 				n=read(Clients[ClientCount].ClientSocketFileDiscriptor,buffer,255);
-				if ( n <0 )
+				if ( n < 1 )
 				{
-					printf("ERROR reading from socket\n");
+					printf("Client Closed Connection on Client number %d\n",ClientCount);
+					close(Clients[ClientCount].ClientSocketFileDiscriptor);
+					Clients[ClientCount].IsConnected=0;
+					continue;
+//					printf("ERROR reading from socket\n");
 				}
 				printf("Here is the message received from cleint %d : %s\n",ClientCount,buffer);
 			}
@@ -237,11 +241,11 @@ int main(int argc, char *argv[])
 #else
 					sprintf(buffer,"%f\n",distance);
 #endif
-					n=-1;
-					while(buffer[++n]!=0);
+//					n=-1;
+//					while(buffer[++n]!=0);
 //					buffer[++n]='\n';
 //					printf("%f\n",speed);
-					n = write(Clients[ClientCount].ClientSocketFileDiscriptor, buffer,n+1);
+					n = write(Clients[ClientCount].ClientSocketFileDiscriptor, buffer,strlen(buffer));
 					if(n<0)
 					{
 						error("ERROR writing to socket\n");
