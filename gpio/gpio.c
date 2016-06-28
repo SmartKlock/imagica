@@ -2,21 +2,25 @@
 #include<wiringPi.h>
 #define pinNumber 29
 
-int main(void)
+int main(int argc,char** argv)
 {
-	int data=1,data1=1,time,time1,count=0;
+	int data=1,data1=1,time,time1,count=0,pin=pinNumber;
 	if(wiringPiSetup() == -1)
 	{
 		printf("Wiring pi is a dud\n");
 		return 1;
 	}
-	pinMode( pinNumber , INPUT);
+	if(argc>1)
+	{
+		sscanf(argv[1],"%d",&pin);
+	}
+	pinMode( pin , INPUT);
 	time=millis();
 	time1=time;
 	for(;;)
 	{
-		data=digitalRead(pinNumber);
-		if(data != data1 && data ==0)
+		data=digitalRead(pin);
+		if(data != data1)
 		{
 			count++;
 			time=millis();
