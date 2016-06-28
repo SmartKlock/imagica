@@ -12,11 +12,12 @@
 
 #define MAXCLIENTS	10
 #define WHEEL_PPR	10
-#define WHEEL_DIA	550
 
 #define SEND_SPEEDa
 
-
+#define DefaultTrackLength 10000
+#define DefaultTrackCount 20000
+#define WHEEL_DIA	550
 
 
 int threadcomplete=0;
@@ -40,15 +41,28 @@ void error(char *msg)
 int main(int argc, char *argv[])
 {
 	struct ClientStatus Clients[MAXCLIENTS+1];
-	int sockfd,newsockfd,portno,clilen,n,ClientCount=0,data[2],Count=0,time[3];
-	FILE *ftime;
+	int sockfd,newsockfd,portno,clilen,n,ClientCount=0,data[2],Count=0,time[3],TrackCount=DefaultTrackCount;
+	FILE *ftime,*Calibration;
 	char buffer[256];
-	float speed=0;
-	double distance=0,increment=3.14*WHEEL_DIA/WHEEL_PPR;
+	float speed=0,TrackLength=DefaultTrackLength;
+	double distance=0,increment=(TrackLength*1.0)/TrackCount;
 	struct sockaddr_in serv_addr, cli_addr;
-
 	struct timeval tv;
+	struct ClientStatus st;
 	fd_set readfds,exceptfds;
+	if(stat("calibrate.txt",&st) ==0)
+	{
+		printf("Calibration File Exists, retriving trackcount\n");
+		Calibration=fopen("calibrate.txt","r");
+		fscanf(Calibration,"%d\n",&TrackCount);
+		if(TrackCount<1)
+		{
+			printf("Trackcount error\n");
+		}else{
+			increment=(TrackLength*1.0)/TrackCount;
+		}
+		fclose(Calibration);
+	}
 	if(wiringPiSetup()==-1)
 	{
 		printf("wiring pi is a dud\n");
@@ -104,13 +118,11 @@ int main(int argc, char *argv[])
 //			ftime=fopen("log.txt","w");
 			fprintf(ftime,"%d\n",currentTime);
 //			fclose(ftime);
-			if( data[0]==0)
-			{
-#ifdef SEND_SPEED
-				Count++;
-#endif
-				distance+=increment;
-			}
+//			if( data[0]==0)
+//			{
+			Count++;
+			distance+=increment;
+//			}
 		}
 		data[1]=data[0];
 #ifdef SEND_SPEED
@@ -150,7 +162,7 @@ int main(int argc, char *argv[])
 		{
 			char datac;
 			scanf("%c",&datac);
-			if(datac=='C')
+			if(datac=='S')
 			{
 				printf("Closing Server\n");
 				fclose(ftime);
@@ -163,6 +175,17 @@ int main(int argc, char *argv[])
 				}
 				close(sockfd);
 				return 0;
+			}else if(datac=='R')
+			{
+				Count=0;
+				distance=0;
+				printf("Resetting count and distance\n");
+			}else if(datac=='C')
+			{
+				printf("Storing count to calibration file\n");
+				Calibration=fopen("calibrate.txt","w");
+				fprintf(Calibration,"%d\n",Count);
+				fclose(Calibration);
 			}
 		}
 		if(FD_ISSET(sockfd,&readfds))
@@ -233,6 +256,7 @@ int main(int argc, char *argv[])
 					continue;
 //					printf("ERROR reading from socket\n");
 				}
+				sscanf(buffer,"%d",&n);
 				printf("Here is the message received from cleint %d : %s\n",ClientCount,buffer);
 			}
 			if((Clients[ClientCount].IsConnected==1))//&&(FD_ISSET(Clients[ClientCount].ClientSocketFileDiscriptor,&writefds)))
