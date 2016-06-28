@@ -106,11 +106,14 @@ int main(int argc, char *argv[])
 //			fclose(ftime);
 			if( data[0]==0)
 			{
+#ifdef SEND_SPEED
 				Count++;
+#endif
 				distance+=increment;
 			}
 		}
 		data[1]=data[0];
+#ifdef SEND_SPEED
 		if(Count==30)
 		{
 			time[0]=millis();
@@ -119,6 +122,7 @@ int main(int argc, char *argv[])
 			time[1]=time[0];
 			Count=0;
 		}
+#endif
 		tv.tv_sec=0;
 		tv.tv_usec=100;
 		FD_ZERO(&readfds);
