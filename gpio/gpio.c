@@ -1,6 +1,6 @@
 #include<stdio.h>
 #include<wiringPi.h>
-#define pinNumber 29
+#define pinNumber 1
 
 int main(int argc,char** argv)
 {
@@ -20,7 +20,7 @@ int main(int argc,char** argv)
 	for(;;)
 	{
 		data=digitalRead(pin);
-		if(data != data1)
+		if((data != data1) & (data !=0))
 		{
 			count++;
 			time=millis();

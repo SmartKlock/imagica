@@ -15,7 +15,7 @@
 
 #define SEND_SPEEDa
 
-#define DefaultTrackLength 143720
+#define DefaultTrackLength 219000
 #define DefaultTrackCount 20000
 #define WHEEL_DIA	550
 
@@ -49,7 +49,6 @@ int main(int argc, char *argv[])
 	struct sockaddr_in serv_addr, cli_addr;
 	struct timeval tv;
 	struct ClientStatus st;
-	long transfer;
 	fd_set readfds,exceptfds;
 	if(stat("calibrate.txt",&st) ==0)
 	{
@@ -121,8 +120,8 @@ int main(int argc, char *argv[])
 //			fclose(ftime);
 //			if( data[0]==0)
 //			{
-			Count++;
-			distance+=increment;
+//			Count++;
+//			distance+=increment;
 //			}
 		}
 		data[1]=data[0];
@@ -187,9 +186,6 @@ int main(int argc, char *argv[])
 				Calibration=fopen("calibrate.txt","w");
 				fprintf(Calibration,"%d\n",Count);
 				fclose(Calibration);
-			}else if(datac=='I')
-			{
-				printf("Count=%ld,distance=%f\n",Count,distance);
 			}
 		}
 		if(FD_ISSET(sockfd,&readfds))
@@ -268,6 +264,9 @@ int main(int argc, char *argv[])
 				bzero(buffer,256);
 				if(printoutput==1)
 				{
+					long transfer;
+					Count++;
+					distance+=increment;
 					transfer=distance;
 #ifdef SEND_SPEED
 					sprintf(buffer,"%f %f\n",distance,speed);

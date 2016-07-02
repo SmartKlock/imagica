@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include<wiringPi.h>
-#define pinNumber 29
-
+#define pinNumber 1
+#define PPR 1
 int main(void)
 {
 	int data=1,data1=1,time,time1,count=0;
@@ -25,7 +25,7 @@ int main(void)
 		{
 			time=millis();
 			time1=time-time1;
-			speed=600000.0/((float)time1);
+			speed=1800000.0/(PPR*(float)time1);
 			printf("count changed to=%f, after %d milliseconds\n",speed,time1);
 			time1=time;
 			count=0;
