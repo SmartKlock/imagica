@@ -1,7 +1,7 @@
 socket_server.c: In function ‘main’:
-socket_server.c:89:2: warning: incompatible implicit declaration of built-in function ‘bzero’
+socket_server.c:88:2: warning: incompatible implicit declaration of built-in function ‘bzero’
   bzero((char *) &serv_addr, sizeof(serv_addr));
   ^
-socket_server.c:278:72: warning: incompatible implicit declaration of built-in function ‘strlen’
+socket_server.c:280:72: warning: incompatible implicit declaration of built-in function ‘strlen’
       n = write(Clients[ClientCount].ClientSocketFileDiscriptor, buffer,strlen(buffer));
                                                                         ^

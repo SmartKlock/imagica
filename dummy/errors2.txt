@@ -1,0 +1,27 @@
+socket_client.c: In function ‘error’:
+socket_client.c:10:5: warning: incompatible implicit declaration of built-in function ‘exit’
+     exit(0);
+     ^
+socket_client.c: In function ‘main’:
+socket_client.c:22:10: warning: incompatible implicit declaration of built-in function ‘exit’
+          exit(0);
+          ^
+socket_client.c:31:9: warning: incompatible implicit declaration of built-in function ‘exit’
+         exit(0);
+         ^
+socket_client.c:33:5: warning: incompatible implicit declaration of built-in function ‘bzero’
+     bzero((char *) &serv_addr, sizeof(serv_addr));
+     ^
+socket_client.c:35:5: warning: incompatible implicit declaration of built-in function ‘bcopy’
+     bcopy((char *)server->h_addr, 
+     ^
+socket_client.c:40:24: warning: passing argument 2 of ‘connect’ from incompatible pointer type
+     if (connect(sockfd,&serv_addr,sizeof(serv_addr)) < 0) 
+                        ^
+In file included from socket_client.c:3:0:
+/usr/include/arm-linux-gnueabihf/sys/socket.h:137:12: note: expected ‘const struct sockaddr *’ but argument is of type ‘struct sockaddr_in *’
+ extern int connect (int __fd, __CONST_SOCKADDR_ARG __addr, socklen_t __len);
+            ^
+socket_client.c:45:29: warning: incompatible implicit declaration of built-in function ‘strlen’
+     n = write(sockfd,buffer,strlen(buffer));
+                             ^
