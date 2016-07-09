@@ -1,6 +1,6 @@
 #include<stdio.h>
 #include<wiringPi.h>
-#define pinNumber 29
+#define pinNumber 7
 
 int main(int argc,char** argv)
 {

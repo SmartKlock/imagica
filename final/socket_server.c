@@ -8,10 +8,15 @@
 
 #include<wiringPi.h>
 
-#define PinNumber 1
+#define LeadingPin 1
+#define LaggingPin 7
+
+#define SensorConstant 100
+
 
 #define MAXCLIENTS	10
 #define WHEEL_PPR	10
+
 
 #define SEND_SPEEDa
 
@@ -41,35 +46,24 @@ void error(char *msg)
 int main(int argc, char *argv[])
 {
 	struct ClientStatus Clients[MAXCLIENTS+1];
-	int sockfd,newsockfd,portno,clilen,n,ClientCount=0,data[2],Count=0,time[3],TrackCount=DefaultTrackCount;
+	int sockfd,newsockfd,portno,clilen,n,ClientCount=0,LeadingPinStatus[2],LaggingPinStatus[2],Count=0,time[3];
+	int LeadingSignal[2000],LaggingSignal[2000],LeadingPointer=0,LaggingPointer=0,CurrentPointer=-1;
 	FILE *ftime,*Calibration;
 	char buffer[256];
-	float speed=0,TrackLength=DefaultTrackLength;
-	double distance=0,increment=(TrackLength*1.0)/TrackCount;
+	float TrackLength=DefaultTrackLength;
+	double speed=0,distance=0;
 	struct sockaddr_in serv_addr, cli_addr;
 	struct timeval tv;
 	struct ClientStatus st;
 	long transfer;
 	fd_set readfds,exceptfds;
-	if(stat("calibrate.txt",&st) ==0)
-	{
-		printf("Calibration File Exists, retriving trackcount\n");
-		Calibration=fopen("calibrate.txt","r");
-		fscanf(Calibration,"%d\n",&TrackCount);
-		if(TrackCount<1)
-		{
-			printf("Trackcount error\n");
-		}else{
-			increment=(TrackLength*1.0)/TrackCount;
-		}
-		fclose(Calibration);
-	}
 	if(wiringPiSetup()==-1)
 	{
 		printf("wiring pi is a dud\n");
 		return 1;
 	}
-	pinMode(PinNumber,INPUT);
+	pinMode(LeadingPin,INPUT);
+	pinMode(LaggingPin,INPUT);
 
 	for(ClientCount=0;ClientCount<MAXCLIENTS+1;ClientCount++)
 	{
@@ -96,8 +90,10 @@ int main(int argc, char *argv[])
 		error("Error on binding\n");
 	}
 	listen(sockfd,5);
-	data[0]=0;
-	data[1]=0;
+	LeadingPinStatus[0]=1;
+	LeadingPinStatus[1]=1;
+	LaggingPinStatus[0]=1;
+	LaggingPinStatus[1]=1;
 	time[0]=millis();
 	time[1]=time[0];
 	time[2]=time[0];
@@ -106,36 +102,47 @@ int main(int argc, char *argv[])
 	{
 		int maxid=0;
 		int printoutput=0;
-		long currentTime=millis();
-		if((currentTime-time[2])>50)
+		time[1]=time[0];
+		time[0]=millis();
+		if((time[0]-time[2])>50)
 		{
 			printoutput=1;
 			time[2]=millis();
 		}
-		data[0]=digitalRead(PinNumber);
-		if(data[0] !=data[1])
+		LeadingPinStatus[0]=digitalRead(LeadingPin);
+		if(LeadingPinStatus[0] !=LeadingPinStatus[1])
 		{	
-//			printf("printing data to file\n");
-//			ftime=fopen("log.txt","w");
-			fprintf(ftime,"%d\n",currentTime);
-//			fclose(ftime);
-//			if( data[0]==0)
-//			{
-			Count++;
-			distance+=increment;
-//			}
+			printf("Transition at %d on leading pin, currentpointer =%d, LEadingPointer= %d\n",time[0]-LeadingSignal[LeadingPointer-1],CurrentPointer,LeadingPointer);
+			LeadingSignal[LeadingPointer++]=time[0];
+			LeadingPinStatus[1]=LeadingPinStatus[0];
+			if(LeadingPointer>1999)
+			{
+				LeadingPointer=0;
+			}
 		}
-		data[1]=data[0];
-#ifdef SEND_SPEED
-		if(Count==30)
+		LaggingPinStatus[0]=digitalRead(LaggingPin);
+		if(LaggingPinStatus[0] !=LaggingPinStatus[1])
+		{	
+			printf("Transition at %d on lagging pin, currentpointer =%d, Lagging Pointer = %d\n",time[0]-LaggingSignal[LaggingPointer-1],CurrentPointer,LaggingPointer);
+			LaggingSignal[LaggingPointer++]=time[0];
+			LaggingPinStatus[1]=LaggingPinStatus[0];
+			if(LaggingPointer>1999)
+			{
+				LaggingPointer=0;
+			}
+		}
+		if(LeadingPointer>LaggingPointer)
 		{
-			time[0]=millis();
-			time[1]=time[0]-time[1];
-			speed=(increment*0.03)/(3600.0*((float)time[1]));
-			time[1]=time[0];
-			Count=0;
+			CurrentPointer=LaggingPointer-1;
+		}else
+		{
+			CurrentPointer=LeadingPointer-1;
 		}
-#endif
+		if(CurrentPointer>-1)
+		{
+			speed=(double)(SensorConstant)/(double)(LeadingSignal[CurrentPointer]-LaggingSignal[CurrentPointer]);
+			distance+=speed*(double)(time[0]-time[1]);
+		}
 		tv.tv_sec=0;
 		tv.tv_usec=100;
 		FD_ZERO(&readfds);
@@ -178,18 +185,14 @@ int main(int argc, char *argv[])
 				return 0;
 			}else if(datac=='R')
 			{
-				Count=0;
+				LeadingPointer=0;
+				LaggingPointer=0;
+				CurrentPointer=-1;
 				distance=0;
-				printf("Resetting count and distance\n");
-			}else if(datac=='C')
-			{
-				printf("Storing count to calibration file\n");
-				Calibration=fopen("calibrate.txt","w");
-				fprintf(Calibration,"%d\n",Count);
-				fclose(Calibration);
+				printf("Resetting all parameters and distance\n");
 			}else if(datac=='I')
 			{
-				printf("Count=%ld,distance=%f\n",Count,distance);
+				printf("Count=%ld,distance=%f\n",CurrentPointer,distance);
 			}
 		}
 		if(FD_ISSET(sockfd,&readfds))
@@ -207,7 +210,6 @@ int main(int argc, char *argv[])
 				}
 			}
 
-//			printf("Accepting Client on %d\n",ClientCount);
 			Clients[ClientCount].ClientLength = sizeof(Clients[ClientCount].ClientAddress);
 			Clients[ClientCount].ClientSocketFileDiscriptor = accept(sockfd, (struct sockaddr *) &(Clients[ClientCount].ClientAddress),&(Clients[ClientCount].ClientLength));
 			if(Clients[ClientCount].ClientSocketFileDiscriptor < 0)
@@ -230,7 +232,6 @@ int main(int argc, char *argv[])
 		{	
 			if((Clients[ClientCount].IsConnected==1)&&(FD_ISSET(Clients[ClientCount].ClientSocketFileDiscriptor,&exceptfds)))
 			{
-//				printf("Client Closed Connection on Client number %d\n",ClientCount);
 				close(Clients[ClientCount].ClientSocketFileDiscriptor);
 				Clients[ClientCount].IsConnected==0;
 			}
@@ -258,12 +259,11 @@ int main(int argc, char *argv[])
 					close(Clients[ClientCount].ClientSocketFileDiscriptor);
 					Clients[ClientCount].IsConnected=0;
 					continue;
-//					printf("ERROR reading from socket\n");
 				}
 				sscanf(buffer,"%d",&n);
 				printf("Here is the message received from cleint %d : %s\n",ClientCount,buffer);
 			}
-			if((Clients[ClientCount].IsConnected==1))//&&(FD_ISSET(Clients[ClientCount].ClientSocketFileDiscriptor,&writefds)))
+			if(Clients[ClientCount].IsConnected==1)
 			{
 				bzero(buffer,256);
 				if(printoutput==1)
@@ -274,10 +274,6 @@ int main(int argc, char *argv[])
 #else
 					sprintf(buffer,"%ld\n",transfer);
 #endif
-//					n=-1;
-//					while(buffer[++n]!=0);
-//					buffer[++n]='\n';
-//					printf("%f\n",speed);
 					n = write(Clients[ClientCount].ClientSocketFileDiscriptor, buffer,strlen(buffer));
 					if(n<0)
 					{
