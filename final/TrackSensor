@@ -25,7 +25,7 @@ case $1 in
         if [ ! -f $PID_PATH_NAME ]; then
             nohup $SERVICE_PATH$SERVICE_NAME $PORT_ADDRESS 2>> /dev/null >> /dev/null &
                         echo $! > $PID_PATH_NAME
-	    nohup $SERVICE_PATH$EXTRA_SERVICE 2>$SERVICE_PATH$SERVICE_LOG >$SERVICE_PATH$SERVICE_LOG
+#	    nohup $SERVICE_PATH$EXTRA_SERVICE 2>$SERVICE_PATH$SERVICE_LOG >$SERVICE_PATH$SERVICE_LOG
             echo "$SERVICE_NAME started ..."
         else
             echo "$SERVICE_NAME is already running ..."
