@@ -1,5 +1,5 @@
 ifconfig
 iwlist wlan0 scan | grep SSID
 checking connection
-
-switching to hotspot
+Nitro_Net
+remaining on connection

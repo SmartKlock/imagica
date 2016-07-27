@@ -5,7 +5,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <errno.h>
 
 #include <sys/time.h>
 #include <unistd.h>
@@ -18,9 +17,6 @@
 #define MAXCLIENTS	10
 #define WHEEL_PPR	10
 
-#define RESET_DATA_MARKER R
-#define CALIBRATE_DATA_MARKER C
-
 #define SEND_SPEEDa
 
 #define DefaultTrackLength 276440
@@ -28,7 +24,7 @@
 #define WHEEL_DIA	550
 
 
-int Count=0;
+int threadcomplete=0;
 
 struct ClientStatus{
 	int IsConnected;
@@ -44,20 +40,14 @@ void error(char *msg)
 //	exit(1);
 }
 
-void myInterrupt(void)
-{
-	Count++;
-}
-
 
 
 int main(int argc, char *argv[])
 {
 	struct ClientStatus Clients[MAXCLIENTS+1];
-	int sockfd,newsockfd,portno,clilen,n,ClientCount=0,data[2],time[3],TrackCount=DefaultTrackCount;
-	int serialfd;
+	int sockfd,newsockfd,portno,clilen,n,ClientCount=0,data[2],Count=0,time[3],TrackCount=DefaultTrackCount;
 	FILE *ftime,*Calibration;
-	char buffer[256],printdata[256];
+	char buffer[256];
 	float speed=0,TrackLength=DefaultTrackLength;
 	double distance=0,increment=(TrackLength*1.0)/TrackCount;
 	struct sockaddr_in serv_addr, cli_addr;
@@ -77,11 +67,6 @@ int main(int argc, char *argv[])
 			increment=(TrackLength*1.0)/TrackCount;
 		}
 		fclose(Calibration);
-	}
-	if((serialfd=serialOpen("/dev/ttyAMA0",9600))<0)
-	{
-		error("Error on opening serial port\n");
-		return 1;
 	}
 	if(wiringPiSetup()==-1)
 	{
@@ -121,16 +106,12 @@ int main(int argc, char *argv[])
 	time[1]=time[0];
 	time[2]=time[0];
 	ftime=fopen("log.txt","w");
-	if ( wiringPiISR (PinNumber, INT_EDGE_BOTH, &myInterrupt) < 0 ) {
-      		fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
-      		return 1;
-  	}
 	while(1)
 	{
 		int maxid=0;
 		int printoutput=0;
 		long currentTime=millis();
-/*		//printf("Time = %d\n",currentTime);
+		printf("Time = %d\n",currentTime);
 		if((currentTime-time[2])>10)
 		{
 			printoutput=1;
@@ -159,32 +140,9 @@ int main(int argc, char *argv[])
 			time[1]=time[0];
 			Count=0;
 		}
-#endif*/
-		delay(1);
-		if(serialDataAvail(serialfd)>0)
+#endif
+		if(printoutput==1)
 		{
-			while(serialDataAvail(serialfd)>0)
-			{
-				char datac;
-				datac=serialGetchar(serialfd);
-				if(datac=='RESET_DATA_MARKER')
-				{
-					Count=0;
-					distance=0;
-					printf("Resetting count and distance\n");
-				}else if(datac=='CALIBRATE_DATA_MARKER')
-				{
-					printf("Storing count to calibration file\n");
-					Calibration=fopen("calibrate.txt","w");
-					fprintf(Calibration,"%d\n",Count);
-					fclose(Calibration);
-				}
-			}
-		}
-		if((currentTime-time[2])>10)//printoutput==1)
-		{
-		time[2]=currentTime;
-		distance=Count*increment;
 		tv.tv_sec=0;
 		tv.tv_usec=100;
 		FD_ZERO(&readfds);
@@ -223,7 +181,6 @@ int main(int argc, char *argv[])
 						close(Clients[ClientCount].ClientSocketFileDiscriptor);
 					}
 				}
-				serialClose(serialfd);
 				close(sockfd);
 				return 0;
 			}else if(datac=='R')

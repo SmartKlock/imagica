@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -37,7 +40,7 @@ int main(int argc, char *argv[])
          server->h_length);
     serv_addr.sin_port = htons(portno);
     while(1){
-    if (connect(sockfd,&serv_addr,sizeof(serv_addr)) < 0) 
+    if (connect(sockfd,(__CONST_SOCKADDR_ARG)&serv_addr,sizeof(serv_addr)) < 0) 
         error("ERROR connecting");
     printf("Please enter the message: ");
     bzero(buffer,256);
