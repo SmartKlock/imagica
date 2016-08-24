@@ -46,8 +46,8 @@ void error(char *msg)
 int main(int argc, char *argv[])
 {
 	struct ClientStatus Clients[MAXCLIENTS+1];
-	int sockfd,newsockfd,portno,clilen,n,ClientCount=0,LeadingPinStatus[2],LaggingPinStatus[2],Count=0,time[3];
-	int LeadingSignal[2000],LaggingSignal[2000],LeadingPointer=0,LaggingPointer=0,CurrentPointer=-1;
+	int sockfd,newsockfd,portno,clilen,n,ClientCount=0,LeadingPinStatus[2],LaggingPinStatus[2],Count=0,time[3],stopd;
+	int LeadingSignal[2000],LaggingSignal[2000],LeadingPointer=0,LaggingPointer=0,CurrentPointer=-1,Memptr=-1;
 	FILE *ftime,*Calibration;
 	char buffer[256];
 	float TrackLength=DefaultTrackLength;
@@ -97,6 +97,7 @@ int main(int argc, char *argv[])
 	time[0]=millis();
 	time[1]=time[0];
 	time[2]=time[0];
+	stopd=time[0];
 	ftime=fopen("log.txt","w");
 	while(1)
 	{
@@ -112,37 +113,48 @@ int main(int argc, char *argv[])
 		LeadingPinStatus[0]=digitalRead(LeadingPin);
 		if(LeadingPinStatus[0] !=LeadingPinStatus[1])
 		{	
+			CurrentPointer=LeadingPinStatus[0];
+			speed=(double)(SensorConstant)/(double)(LeadingSignal[CurrentPointer]-LaggingSignal[CurrentPointer]);
+			stopd=time[0];
 			printf("Transition at %d on leading pin, currentpointer =%d, LEadingPointer= %d\n",time[0]-LeadingSignal[LeadingPointer-1],CurrentPointer,LeadingPointer);
-			LeadingSignal[LeadingPointer++]=time[0];
-			LeadingPinStatus[1]=LeadingPinStatus[0];
-			if(LeadingPointer>1999)
-			{
-				LeadingPointer=0;
+			if(LeadingPinStatus[0]){
+				LeadingSignal[0]=time[0];
+			}else{
+				LeadingSignal[1]=time[0];
 			}
+			LeadingPinStatus[1]=LeadingPinStatus[0];
 		}
 		LaggingPinStatus[0]=digitalRead(LaggingPin);
 		if(LaggingPinStatus[0] !=LaggingPinStatus[1])
 		{	
-			printf("Transition at %d on lagging pin, currentpointer =%d, Lagging Pointer = %d\n",time[0]-LaggingSignal[LaggingPointer-1],CurrentPointer,LaggingPointer);
-			LaggingSignal[LaggingPointer++]=time[0];
-			LaggingPinStatus[1]=LaggingPinStatus[0];
-			if(LaggingPointer>1999)
-			{
-				LaggingPointer=0;
-			}
-		}
-		if(LeadingPointer>LaggingPointer)
-		{
-			CurrentPointer=LaggingPointer-1;
-		}else
-		{
-			CurrentPointer=LeadingPointer-1;
-		}
-		if(CurrentPointer>-1)
-		{
+			CurrentPointer=LaggingPinStatus[0];
 			speed=(double)(SensorConstant)/(double)(LeadingSignal[CurrentPointer]-LaggingSignal[CurrentPointer]);
-			distance+=speed*(double)(time[0]-time[1]);
+
+			stopd=time[0];
+			printf("Transition at %d on lagging pin, currentpointer =%d, Lagging Pointer = %d\n",time[0]-LaggingSignal[LaggingPointer-1],CurrentPointer,LaggingPointer);
+			if(LaggingPinStatus[0]){
+				LaggingSignal[0]=time[0];
+			}
+			else
+			{
+				LaggingSignal[1]=time[0];
+			}
+			LaggingPinStatus[1]=LaggingPinStatus[0];
 		}
+		if(LeadingPinStatus[0]==LaggingPinStatus[0])
+		{
+		}
+		if(((time[0]-stopd)<3000)&&(CurrentPointer>-1)&&(time[0]!=time[1]))
+		{
+				distance+=speed*(double)(time[0]-time[1]);
+		}
+/*		else
+		{
+			CurrentPointer=-1;
+			Memptr=-1;
+			LeadingPointer=0;
+			LaggingPointer=0;
+		}*/
 		tv.tv_sec=0;
 		tv.tv_usec=100;
 		FD_ZERO(&readfds);
@@ -188,6 +200,8 @@ int main(int argc, char *argv[])
 				LeadingPointer=0;
 				LaggingPointer=0;
 				CurrentPointer=-1;
+				Memptr=-1;
+				stopd=time[0];
 				distance=0;
 				printf("Resetting all parameters and distance\n");
 			}else if(datac=='I')
